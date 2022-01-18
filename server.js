@@ -1,6 +1,9 @@
 const express = require('express');
 const app = express();
-
+const fs = require('fs')
+app.get('/', (req, res)=>{
+   res.redirect('http://localhost:3000/menu')
+});
 app.get('/game', (req, res)=>{
    res.send(
       `
@@ -22,7 +25,7 @@ let
    pointsLoss   = 5,
    totalPoints = 100,
    stepSize = 15;
-
+   key = 39;
 const 
    currPosition  = [0,0],
    points        = [],
@@ -102,39 +105,71 @@ function movement(){
 function gameOver(){
    for (let i in snakeSegments){
       if(snakeSegments[i][0] == currPosition[0] && snakeSegments[i][1] == currPosition[1]){
+         Store()
          location.href = "http://localhost:3000/score";
-         break;
       };
    };
    if (currPosition[0]>600 || currPosition[0]<0 || currPosition[1]<0 || currPosition[1]>600){
+      Store()
       location.href = "http://localhost:3000/score"
    };
 
 };
 //points collecting
 function pointsCollecting(){
-   /*score.innerHTML+=pointsGet;*/
+   score.innerHTML+=pointsGet;
    totalPoints-=pointsLoss ;
    score.innerHTML = totalPoints;
+}
+
+
+function Store(){
+   let results = window.localStorage.getItem('best');
+   let output = window.localStorage.getItem('comm');
+   if (results == 'undefined' || Number(score.innerText)>=Number(results)) {
+      window.localStorage.setItem('cur',score.innerText);
+      window.localStorage.setItem('best',score.innerText)
+      window.localStorage.setItem('comm','u won')
+   }
+   else{
+      window.localStorage.setItem('cur',score.innerText);
+       window.localStorage.setItem('comm','u lost');
+   }
 }
 
 setInterval(apple,3500);
 setInterval(pointsCollecting,4000);
 setInterval(movement,200);
 </script>
-      `)});
+      
+
+`)});
    
 
 
 app.get('/menu', (req, res)=>{
-   //res.send();
-   //res.redirect('http://localhost:3000/game')
    res.send(`<a href="http://localhost:3000/game">Start</a>`);
 });
 
 app.get('/score', (req, res)=>{
-   res.send("1");
-   //res.redirect('http://localhost:3000/game')
-  // res.send(`<a href="http://localhost:3000/game">Start</a>`);
+   res.send(`
+      <h1 id="feedback"></h1>
+      <h2 id="score"></h2>
+      <a href="http://localhost:3000/menu"><button>Menu</button></a>
+      <script>
+         const 
+            msg = document.getElementById('feedback'),
+            scr = document.getElementById('score')
+
+            msg.innerText = window.localStorage.getItem('comm');
+            if (window.localStorage.getItem('cur') == window.localStorage.getItem('best')) {
+               scr.innerText = 'Your score is '+window.localStorage.getItem('best')+' and it is a the highest score';
+            }else{
+               scr.innerText = 'Your score is '+window.localStorage.getItem('cur')
+               +' and the highest score is '+ window.localStorage.getItem('best') + '. Try Again';
+            }
+      </script>
+      `);
+  
 });
 app.listen(3000)
