@@ -1,9 +1,15 @@
 const express = require('express');
 const app = express();
-const fs = require('fs')
+const fs = require('fs');
+var bodyParser=require("body-parser");
+app.use(bodyParser.json());
 app.get('/', (req, res)=>{
    res.redirect('http://localhost:3000/menu')
 });
+
+const bestScoreTable = [];
+let currentScore = 0;
+
 app.get('/game', (req, res)=>{
    res.send(
       `
@@ -11,7 +17,7 @@ app.get('/game', (req, res)=>{
       <canvas id="canvas" height="600" width="600" style="border:2px solid black">
          
       </canvas>
-
+      <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js">  </script>
       <script>
 
       const 
@@ -103,15 +109,16 @@ function movement(){
 
 //gameOver
 function gameOver(){
+   
    for (let i in snakeSegments){
       if(snakeSegments[i][0] == currPosition[0] && snakeSegments[i][1] == currPosition[1]){
-         Store()
+         SendData(Number(score.innerText));
          location.href = "http://localhost:3000/score";
       };
    };
    if (currPosition[0]>600 || currPosition[0]<0 || currPosition[1]<0 || currPosition[1]>600){
-      Store()
-      location.href = "http://localhost:3000/score"
+      SendData(Number(score.innerText))
+      location.href = "http://localhost:3000/score";
    };
 
 };
@@ -123,18 +130,9 @@ function pointsCollecting(){
 }
 
 
-function Store(){
-   let results = window.localStorage.getItem('best');
-   let output = window.localStorage.getItem('comm');
-   if (results == 'undefined' || Number(score.innerText)>=Number(results)) {
-      window.localStorage.setItem('cur',score.innerText);
-      window.localStorage.setItem('best',score.innerText)
-      window.localStorage.setItem('comm','u won')
-   }
-   else{
-      window.localStorage.setItem('cur',score.innerText);
-       window.localStorage.setItem('comm','u lost');
-   }
+function SendData(data){
+  let requestData= {value:data}
+  return fetch("http://localhost:3000/data", {method: "POST", headers: {'Content-Type': 'application/json'}, body: JSON.stringify(requestData)});
 }
 
 setInterval(apple,3500);
@@ -152,24 +150,23 @@ app.get('/menu', (req, res)=>{
 });
 
 app.get('/score', (req, res)=>{
-   res.send(`
-      <h1 id="feedback"></h1>
-      <h2 id="score"></h2>
-      <a href="http://localhost:3000/menu"><button>Menu</button></a>
-      <script>
-         const 
-            msg = document.getElementById('feedback'),
-            scr = document.getElementById('score')
+   let bestScore = Math.max.apply(null, bestScoreTable);
+   let msg = bestScore==currentScore?'You Won':'You Lost';
+   let score = `Your score is ${currentScore} `+ (bestScore==currentScore?
+   `and it is new high score`:`but the high score is ${bestScore}`);
 
-            msg.innerText = window.localStorage.getItem('comm');
-            if (window.localStorage.getItem('cur') == window.localStorage.getItem('best')) {
-               scr.innerText = 'Your score is '+window.localStorage.getItem('best')+' and it is a the highest score';
-            }else{
-               scr.innerText = 'Your score is '+window.localStorage.getItem('cur')
-               +' and the highest score is '+ window.localStorage.getItem('best') + '. Try Again';
-            }
-      </script>
+   res.send(`
+      <h1>${msg}</h1>
+      <h2>${score}</h2>
+      <a href="http://localhost:3000/menu"><button>Menu</button></a>
       `);
   
 });
+app.post('/data', function(req, res) {
+    var val = req.body.value;
+    bestScoreTable.push(val);
+    currentScore = val;
+    console.log(bestScoreTable)
+});
+
 app.listen(3000)
